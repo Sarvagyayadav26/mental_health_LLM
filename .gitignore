@@ -1,0 +1,53 @@
+# ----- Environment / Secrets -----
+.env
+*.env
+.env.*
+.credentials
+*.key
+*.pem
+
+# ----- Python -----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# ----- Cache / Logs -----
+logs/
+*.log
+.cache/
+*.sqlite3
+
+# ----- OS / Editor Files -----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ----- Jupyter -----
+.ipynb_checkpoints/
+
+# ----- Build / Packaging -----
+dist/
+build/
+*.egg-info/
+
+# ----- Data -----
+data/
+*.csv
+*.json
+*.xlsx
+
+# ----- RAG / Embeddings / Vector DB -----
+chroma/
+faiss/
+index/
+vector_store/
+embeddings/
+rag_cache/
