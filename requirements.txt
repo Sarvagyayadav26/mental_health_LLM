@@ -23,3 +23,5 @@ groq==0.4.0  # (If you are using Groq LLM API)
 #CPU
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.1.0+cpu
+#
+transformers==4.37.2
