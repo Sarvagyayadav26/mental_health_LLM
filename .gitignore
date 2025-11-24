@@ -38,11 +38,14 @@ dist/
 build/
 *.egg-info/
 
-# ----- Data -----
+# IGNORE ROOT DATA (confidential)
 data/
 *.csv
 *.json
 *.xlsx
+# ALLOW src/data (used by project)
+!src/data/
+!src/data/**
 
 # ----- RAG / Embeddings / Vector DB -----
 chroma/
