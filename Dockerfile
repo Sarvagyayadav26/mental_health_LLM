@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy NEW deps file (cache invalidation)
-COPY deps.txt .
+COPY requirements1.txt .
 
 # Upgrade pip
 RUN pip install --upgrade pip
