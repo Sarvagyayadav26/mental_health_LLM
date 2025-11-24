@@ -39,7 +39,7 @@ build/
 *.egg-info/
 
 # IGNORE ROOT DATA (confidential)
-data/
+/data/
 *.csv
 *.json
 *.xlsx
