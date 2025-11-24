@@ -1,6 +1,14 @@
 import os
 from dotenv import load_dotenv
 
+dotenv_path = ".env"
+
+# Only load .env locally, ignore missing file on Railway
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+else:
+    print("⚠️ .env file not found — using Railway environment variables")
+
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
