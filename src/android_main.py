@@ -2,6 +2,9 @@ import os
 import datetime
 import hashlib
 
+from fastapi import FastAPI
+from pydantic import BaseModel
+
 from src.rag.embeddings import Embedder
 from src.storage.vector_store import InMemoryVectorStore
 from src.rag.indexer import Indexer
@@ -14,101 +17,71 @@ from src.rag.doc_loader import load_text_documents
 import src.utils.config as config
 
 
-# ----------------------------------------------
-# 🔥 INITIALIZE EVERYTHING ONCE (FAST)
-# ----------------------------------------------
+# ================================================================
+# 🧠 1. RAG INITIALIZATION (Optimized — loads existing index)
+# ================================================================
+def init_rag():
+    """
+    Initialize RAG:
+    - Loads existing vector_store.index.npz (fast)
+    - Only builds index if missing (slow)
+    """
+    print("🔄 Initializing RAG pipeline for Android API...")
 
-def get_docs_hash(doc_dir):
-    """Calculate hash of all document files to detect changes."""
-    doc_files = [f for f in os.listdir(doc_dir) if f.endswith(".txt")]
-    if not doc_files:
-        return None
-    
-    hasher = hashlib.md5()
-    for filename in sorted(doc_files):
-        filepath = os.path.join(doc_dir, filename)
-        if os.path.exists(filepath):
-            mtime = os.path.getmtime(filepath)
-            hasher.update(f"{filename}:{mtime}".encode())
-    return hasher.hexdigest()
+    embedder = Embedder()
+    store = InMemoryVectorStore()
+    vs_path = config.VECTOR_STORE_PATH
 
+    # 1️⃣ Load existing vector store
+    if os.path.exists(vs_path):
+        print(f"🔍 Found vector store at: {vs_path}")
+        store.load(vs_path)
+        print(f"✅ Loaded vector store with {len(store.ids)} documents.")
 
-def get_saved_docs_hash():
-    """Get saved hash from file."""
-    hash_file = os.path.join(config.DATA_DIR, ".docs_hash")
-    if os.path.exists(hash_file):
-        with open(hash_file, "r") as f:
-            return f.read().strip()
-    return None
+    else:
+        # 2️⃣ Fallback — build only if missing
+        print("📚 No vector store found — building index (slow)...")
+        docs = load_text_documents(config.DOCS_DIR)
+        indexer = Indexer(embedder, store)
+        indexer.index_documents(docs)
+        print(f"✅ Vector store built and saved to {vs_path}")
 
-
-def save_docs_hash(hash_value):
-    """Save hash to file."""
-    hash_file = os.path.join(config.DATA_DIR, ".docs_hash")
-    with open(hash_file, "w") as f:
-        f.write(hash_value)
+    retriever = Retriever(embedder, store)
+    return embedder, store, retriever
 
 
-print("🔄 Initializing RAG pipeline for Android API...")
+# Initialize globally ONCE (Railway can reuse this)
+EMBEDDER, VECTOR_STORE, RAG = init_rag()
 
-EMBEDDER = Embedder()
-VECTOR_STORE = InMemoryVectorStore()
-VECTOR_STORE.load()
-
-INDEXER = Indexer(EMBEDDER, VECTOR_STORE)
-
-# Smart re-indexing: only re-index if documents changed
-doc_dir = os.path.join(config.DATA_DIR, "docs")
-current_hash = get_docs_hash(doc_dir)
-saved_hash = get_saved_docs_hash()
-
-if VECTOR_STORE.embeddings is None or current_hash != saved_hash:
-    print("📚 Loading and indexing documents...")
-    docs = load_text_documents(doc_dir)
-    # Clear existing data and re-index
-    VECTOR_STORE.ids = []
-    VECTOR_STORE.texts = []
-    VECTOR_STORE.metadatas = []
-    VECTOR_STORE.embeddings = None
-    INDEXER.index_documents(docs)
-    if current_hash:
-        save_docs_hash(current_hash)
-    print(f"✅ Indexed {len(docs)} document sections")
-else:
-    print(f"✅ Using cached vector store ({len(VECTOR_STORE.ids)} sections)")
-
-RETRIEVER = Retriever(EMBEDDER, VECTOR_STORE)
 LLM = LLMClient()
+chat_history = ChatHistory()
 
-print("✅ Android RAG pipeline ready!")
+
+# ================================================================
+# 📱 FASTAPI APP (Android API)
+# ================================================================
+app = FastAPI()
 
 
-# ----------------------------------------------
-# 🔥 FUNCTION USED BY FastAPI → SUPER FAST
-# ----------------------------------------------
+class Query(BaseModel):
+    text: str
 
-def run_rag_pipeline(user_q: str):
-    """Fast RAG pipeline for Android API calls."""
 
-    chat_history = ChatHistory()
+@app.post("/android-rag")
+def android_rag(query: Query):
+    user_q = query.text.strip()
+    if not user_q:
+        return {"error": "Empty query"}
+
     chat_history.add_user(user_q)
 
-    retrieved = RETRIEVER.retrieve(user_q, top_k=3)
+    # 🔍 Retrieve top docs
+    try:
+        retrieved = RAG.retrieve(user_q, top_k=3)
+    except Exception as e:
+        return {"error": f"Retriever error: {e}"}
 
-    # Fallback
-    if len(retrieved) == 0:
-        simple_explain_msg = [{
-            "role": "user",
-            "content": f"Explain this in very simple words: '{user_q}'"
-        }]
-        simple_explanation = LLM.generate(simple_explain_msg)
-        final_answer = (
-            "\n\nI don't have a solution yet. Try consulting a doctor until we find one."
-            + simple_explanation.strip()
-        )
-        return final_answer
-
-    # Normal RAG
+    # 🧠 Generate messages for LLM
     try:
         messages = build_messages(
             user_q,
@@ -121,4 +94,18 @@ def run_rag_pipeline(user_q: str):
     except Exception as e:
         answer = "RAG failed internally. Error: " + str(e)
 
-    return answer
+    chat_history.add_assistant(answer)
+
+    return {
+        "question": user_q,
+        "answer": answer,
+        "retrieved_docs": retrieved
+    }
+
+
+# ================================================================
+# 🔎 HEALTH CHECK
+# ================================================================
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "Android RAG API is running!"}
