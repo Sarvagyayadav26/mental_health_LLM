@@ -1,4 +1,5 @@
 # force-rebuild-final
+
 FROM python:3.11-slim
 
 # Set working directory
@@ -9,27 +10,31 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy NEW deps file (cache invalidation)
+COPY deps.txt .
 
-# Install Python dependencies
+# Upgrade pip
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
 
-# IMPORTANT: Remove old cached Groq version & install correct one
+# Install all dependencies fresh
+RUN pip install --no-cache-dir -r deps.txt
+
+# Force-remove old groq versions (if stuck in cache)
 RUN pip uninstall -y groq || true
+
+# Install correct Groq SDK
 RUN pip install --no-cache-dir groq==0.7.0
 
-# Copy application code
+# Copy all application code
 COPY . .
 
-# Create data directory if it doesn't exist
+# Create data directory if missing
 RUN mkdir -p data/docs
 
 # Expose port
 EXPOSE 5001
 
-# Set environment variables
+# Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
