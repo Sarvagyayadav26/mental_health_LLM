@@ -1,57 +1,90 @@
-# ----- Environment / Secrets -----
+# -------------------------
+# Python cache / bytecode
+# -------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# -------------------------
+# Virtual environments
+# -------------------------
+venv/
+.venv/
+env/
+ENV/
+
+# -------------------------
+# Environment / Secrets
+# -------------------------
 .env
 *.env
 .env.*
-.credentials
 *.key
 *.pem
+*.token
+*.credentials
 
-# ----- Python -----
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.python-version
-
-# Virtual environment
-venv/
-env/
-.venv/
-
-# ----- Cache / Logs -----
-logs/
-*.log
-.cache/
-*.sqlite3
-
-# ----- OS / Editor Files -----
+# -------------------------
+# OS / Editor files
+# -------------------------
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.code-workspace
 
-# ----- Jupyter -----
+# -------------------------
+# Build / Packaging
+# -------------------------
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# -------------------------
+# Logs / Cache
+# -------------------------
+logs/
+*.log
+.cache/
+pip-wheel-metadata/
+*.sqlite3
+
+# -------------------------
+# Jupyter
+# -------------------------
 .ipynb_checkpoints/
 
-# ----- Build / Packaging -----
-dist/
-build/
-*.egg-info/
+# -------------------------
+# Ignore confidential folder
+# -------------------------
+/confidential data/
 
-# IGNORE ROOT DATA (confidential)
+# -------------------------
+# Data handling
+# Ignore root-level data folder (if exists)
+# KEEP src/data (vector store)
+# -------------------------
 /data/
-*.csv
-*.json
-*.xlsx
-# ALLOW src/data (used by project)
-!src/data/
-!src/data/**
-!src/data/*.npz
+!/src/data/
+!/src/data/**
+!/src/data/*.npz
 
-# ----- RAG / Embeddings / Vector DB -----
+# -------------------------
+# RAG cache directories
+# -------------------------
 chroma/
 faiss/
 index/
 vector_store/
 embeddings/
 rag_cache/
+
+# -------------------------
+# Misc
+# -------------------------
+*.bak
+*.tmp
