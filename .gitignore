@@ -46,6 +46,7 @@ build/
 # ALLOW src/data (used by project)
 !src/data/
 !src/data/**
+!src/data/*.npz
 
 # ----- RAG / Embeddings / Vector DB -----
 chroma/
