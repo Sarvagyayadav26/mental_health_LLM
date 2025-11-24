@@ -12,7 +12,8 @@ GROQ_MODEL=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
 # Base data directory
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+# DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 CHAT_HISTORY_PATH = os.getenv(
     "CHAT_HISTORY_PATH",
