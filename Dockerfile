@@ -2,46 +2,48 @@
 
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
+# Copy NEW requirements1 file
 COPY requirements1.txt .
 
-# Upgrade pip
 RUN pip install --upgrade pip
 
-# Install all dependencies fresh
+# Install all dependencies
 RUN pip install --no-cache-dir -r requirements1.txt
 
-# 🔥 Completely remove ANY preinstalled or conflicting groq versions
+
+# ⬇️⬇️⬇️ INSERT BLOCK HERE (JUST AFTER REQUIREMENTS INSTALL) ⬇️⬇️⬇️
+
+# 🔥 HARD DELETE ANY EXISTING GROQ LIB FILES
+RUN rm -rf /usr/local/lib/python3.11/site-packages/groq || true
+RUN rm -rf /usr/local/lib/python3.11/site-packages/groq-*.dist-info || true
+
+# Uninstall any pip groq versions
 RUN pip uninstall -y groq || true
 RUN pip uninstall -y groq || true
 
-# 🔥 Install ONLY the correct Groq SDK version (0.6.0)
+# Install ONLY correct version
 RUN pip install --no-cache-dir groq==0.6.0
 
-# Copy all application code AFTER environment is clean
+# ⬆️⬆️⬆️ END OF INSERTED BLOCK ⬆️⬆️⬆️
+
+
+# Copy all application code
 COPY . .
 
-# Create data directory if missing
 RUN mkdir -p data/docs
 
-# Expose port
 EXPOSE 5001
 
-# Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:5001/health')" || exit 1
 
-# Run the application
 CMD ["python", "-m", "uvicorn", "src.api.android_server:app", "--host", "0.0.0.0", "--port", "5001"]
