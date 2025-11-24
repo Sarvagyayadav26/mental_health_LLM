@@ -16,11 +16,13 @@ class LLMClient:
         if not self.api_key:
             raise ValueError("GROQ_API_KEY is missing in .env file")
 
-        self.client = Groq(api_key=self.api_key)
-        # self.client = Groq(
-        #  api_key=self.api_key,
-        #   http_client=None   # <--- IMPORTANT PATCH
-        #     )
+        
+        print("🚩 Using patched Groq() with http_client=None")
+
+        self.client = Groq(
+            api_key=self.api_key,
+            http_client=None
+        )   
 
         self.model = model_name or config.GROQ_MODEL
 
