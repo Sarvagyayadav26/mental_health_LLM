@@ -18,12 +18,7 @@ class LLMClient:
 
         
         print("🚩 Using patched Groq() with http_client=None")
-
-        self.client = Groq(
-            api_key=self.api_key,
-            http_client=None
-        )   
-
+        self.client = Groq(api_key=self.api_key)
         self.model = model_name or config.GROQ_MODEL
 
     def generate(self, messages):

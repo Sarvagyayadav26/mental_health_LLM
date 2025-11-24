@@ -1,4 +1,5 @@
-# force-rebuild-v9
+# syntax=docker/dockerfile:1
+# force-rebuild-v10
 
 FROM python:3.11-slim
 
@@ -10,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy NEW requirements file FIRST
+ARG CACHEBUSTER=999
 COPY requirements1.txt .
 
 # Upgrade pip
