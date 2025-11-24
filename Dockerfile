@@ -24,7 +24,7 @@ RUN pip uninstall -y groq || true
 
 # Install correct Groq SDK
 RUN pip install --upgrade httpx
-RUN pip install --no-cache-dir groq==0.7.0
+RUN pip install --no-cache-dir groq==0.6.0
 
 # Copy all application code
 COPY . .
