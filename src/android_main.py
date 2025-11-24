@@ -109,3 +109,31 @@ def android_rag(query: Query):
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Android RAG API is running!"}
+
+# ================================================================
+# 🧠 Reusable RAG function for API server (used by android_server.py)
+# ================================================================
+def run_rag_pipeline(user_query: str):
+    user_query = user_query.strip()
+    if not user_query:
+        return "Empty query"
+
+    chat_history.add_user(user_query)
+
+    # Retrieve documents
+    retrieved = RAG.retrieve(user_query, top_k=3)
+
+    # Build LLM messages
+    messages = build_messages(
+        user_query,
+        retrieved,
+        chat_history.last_n(6),
+        instruction=DEFAULT_INSTRUCTION
+    )
+
+    # Generate answer
+    answer = LLM.generate(messages)
+
+    chat_history.add_assistant(answer)
+
+    return answer
