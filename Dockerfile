@@ -10,14 +10,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy NEW deps file (cache invalidation)
+# Copy NEW requirements1 file (cache invalidation)
 COPY requirements1.txt .
 
 # Upgrade pip
 RUN pip install --upgrade pip
 
 # Install all dependencies fresh
-RUN pip install --no-cache-dir -r deps.txt
+RUN pip install --no-cache-dir -r requirements1.txt
 
 # Force-remove old groq versions (if stuck in cache)
 RUN pip uninstall -y groq || true
