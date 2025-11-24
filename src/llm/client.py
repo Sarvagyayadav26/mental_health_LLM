@@ -2,6 +2,10 @@ import os
 from groq import Groq
 import src.utils.config as config
 
+# Debug print to show what Groq version is installed at runtime
+import groq
+print("🚩 runtime debug: groq package version =", getattr(groq, "__version__", "unknown"))
+
 class LLMClient:
     def __init__(self, model_name=None):
         self.api_key = config.GROQ_API_KEY
