@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy NEW requirements1 file (cache invalidation)
+# Copy requirements file
 COPY requirements1.txt .
 
 # Upgrade pip
@@ -19,14 +19,14 @@ RUN pip install --upgrade pip
 # Install all dependencies fresh
 RUN pip install --no-cache-dir -r requirements1.txt
 
-# Force-remove old groq versions (if stuck in cache)
+# 🔥 Completely remove ANY preinstalled or conflicting groq versions
+RUN pip uninstall -y groq || true
 RUN pip uninstall -y groq || true
 
-# Install correct Groq SDK
-RUN pip install --upgrade httpx
+# 🔥 Install ONLY the correct Groq SDK version (0.6.0)
 RUN pip install --no-cache-dir groq==0.6.0
 
-# Copy all application code
+# Copy all application code AFTER environment is clean
 COPY . .
 
 # Create data directory if missing
