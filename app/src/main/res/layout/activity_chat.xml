@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Chat output box -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#eeeeee"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/chatBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Chat output will appear here"
+            android:textSize="16sp" />
+    </ScrollView>
+
+    <!-- Input box -->
+    <EditText
+        android:id="@+id/inputBox"
+        android:hint="Type your message..."
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:layout_marginTop="10dp" />
+
+    <!-- Send button -->
+    <Button
+        android:id="@+id/sendBtn"
+        android:text="Send"
+        android:padding="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" />
+
+</LinearLayout>

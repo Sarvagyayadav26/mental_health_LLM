@@ -1,0 +1,119 @@
+{
+	"info": {
+		"name": "Mental Health RAG API",
+		"description": "API collection for Mental Health RAG Android API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5001/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the API is running and get system status"
+			},
+			"response": []
+		},
+		{
+			"name": "Chat - Career Anxiety",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": \"I feel anxious about my career\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:5001/chat",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"chat"
+					]
+				},
+				"description": "Send a chat message about career anxiety"
+			},
+			"response": []
+		},
+		{
+			"name": "Chat - Relationship Stress",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": \"I'm stressed about my relationship\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:5001/chat",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"chat"
+					]
+				},
+				"description": "Send a chat message about relationship stress"
+			},
+			"response": []
+		},
+		{
+			"name": "Chat - Social Anxiety",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": \"I have social anxiety\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:5001/chat",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"chat"
+					]
+				},
+				"description": "Send a chat message about social anxiety"
+			},
+			"response": []
+		}
+	]
+}
+
+
+
