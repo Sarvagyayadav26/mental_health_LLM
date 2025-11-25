@@ -8,13 +8,15 @@ def init_db():
     cursor = conn.cursor()
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        email TEXT PRIMARY KEY,
-        age INTEGER,
-        sex TEXT,
-        usage_count INTEGER DEFAULT 0
-    )
-    """)
+CREATE TABLE IF NOT EXISTS users (
+    email TEXT PRIMARY KEY,
+    age INTEGER,
+    sex TEXT,
+    password_hash TEXT,
+    usage_count INTEGER DEFAULT 0
+)
+""")
+
     conn.commit()
     conn.close()
 
@@ -29,10 +31,15 @@ def create_user(email, age, sex):
 def get_user(email):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT email, age, sex, usage_count FROM users WHERE email=?", (email,))
+    cursor.execute("""
+        SELECT email, age, sex, password_hash, usage_count
+        FROM users
+        WHERE email=?
+    """, (email,))
     result = cursor.fetchone()
     conn.close()
     return result
+
 
 def increment_usage(email):
     conn = sqlite3.connect(DB_PATH)
