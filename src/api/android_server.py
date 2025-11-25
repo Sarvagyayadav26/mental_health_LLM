@@ -5,6 +5,10 @@ from pydantic import BaseModel
 import time
 import logging
 
+# User DB imports
+from src.storage.user_db import init_db, create_user, get_user, get_usage, increment_usage
+
+# RAG pipeline imports
 from src.android_main import initialize_all, run_rag_pipeline
 
 # Logging
@@ -13,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Mental Health RAG API")
 
-# Run initialization AFTER server starts (important)
+# Initialize DB immediately
+init_db()
+
+# Run RAG initialization AFTER server starts
 @app.on_event("startup")
 def startup_event():
     logger.info("🚀 Starting system initialization...")
@@ -28,20 +35,91 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class Query(BaseModel):
+# Incoming chat body format
+class ChatQuery(BaseModel):
+    email: str
     message: str
 
-@app.post("/chat")
-async def chat(query: Query):
-    start = time.time()
 
-    reply = await run_in_threadpool(run_rag_pipeline, query.message)
+# ⛔ OLD ENDPOINT — DO NOT USE
+# class Query(BaseModel):
+#     message: str
+
+
+# --------------------------------------------------------
+# ✅ AUTH REGISTRATION ENDPOINT
+# --------------------------------------------------------
+@app.post("/auth/register")
+async def register_user(data: dict):
+    email = data.get("email")
+    age = data.get("age")
+    sex = data.get("sex")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email required")
+
+    user = get_user(email)
+
+    if user:
+        return {
+            "status": "existing",
+            "message": "Welcome back!",
+            "usage_count": user[3],
+        }
+
+    create_user(email, age, sex)
 
     return {
+        "status": "new",
+        "message": "User created successfully",
+        "usage_count": 0,
+    }
+
+
+# --------------------------------------------------------
+# ✅ CHAT ENDPOINT WITH USAGE LIMIT
+# --------------------------------------------------------
+@app.post("/chat")
+async def chat(query: ChatQuery):
+    email = query.email
+    message = query.message
+
+    user = get_user(email)
+    if not user:
+        raise HTTPException(status_code=400, detail="User not registered")
+
+    usage = user[3]
+    FREE_LIMIT = 5  # ← modify this if needed
+
+    # ----- FREE RESPONSE LIMIT -------
+    if usage >= FREE_LIMIT:
+        return {
+            "allowed": False,
+            "error": "Free limit reached. Please subscribe to continue.",
+            "used": usage,
+            "limit": FREE_LIMIT,
+        }
+
+    # Run RAG pipeline
+    start = time.time()
+    reply = await run_in_threadpool(run_rag_pipeline, message)
+
+    # Increment usage count
+    increment_usage(email)
+
+    return {
+        "allowed": True,
         "reply": reply,
+        "usage_now": usage + 1,
+        "limit": FREE_LIMIT,
         "processing_time": round(time.time() - start, 2),
     }
 
+
+# --------------------------------------------------------
+# HEALTH CHECK
+# --------------------------------------------------------
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "server running"}
+
