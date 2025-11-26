@@ -4,7 +4,8 @@ from src.llm.client import LLMClient
 from src.storage.chat_history import ChatHistory
 from src.rag.embeddings import Embedder
 from src.storage.vector_store import InMemoryVectorStore as VectorStore
-from src.storage.user_db import create_user, get_user, init_db
+from src.storage.user_db import create_user, get_user, init_db, save_message
+
 
 # Initialize DB
 init_db()
@@ -34,6 +35,7 @@ def chat():
         return jsonify({'error': 'Invalid JSON'}), 400
 
     # Accept frontend keys
+    email = data.get("email")
     user_input = (
         data.get("input") or
         data.get("message") or
@@ -41,23 +43,30 @@ def chat():
         data.get("query")
     )
 
+    if not email:
+        return jsonify({'error': 'Email missing'}), 400
+
     if not user_input:
         return jsonify({'error': 'No input provided'}), 400
 
     try:
-        # Retrieve docs
+        # Retrieve documents
         documents = retriever.retrieve(user_input)
 
-        # 👉 FIX: LLM expects a list of messages
+        # LLM call
         reply = llm_client.generate_response([
             {"role": "user", "content": user_input}
         ])
 
-        # 👉 FIX: Use correct history methods
+        # Save history (local JSON)
         chat_history.add_user(user_input)
         chat_history.add_assistant(reply)
 
-        # Clean docs for frontend
+        # Save messages in DB
+        save_message(email, "user", user_input)
+        save_message(email, "assistant", reply)
+
+        # Clean docs
         documents_clean = [
             {
                 "text": d["text"],
@@ -76,7 +85,7 @@ def chat():
     except Exception as e:
         print("🔥 SERVER ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
-
+    #
 
 # ----------------------------------------------------------------------
 # CHAT HISTORY
