@@ -1,21 +1,21 @@
 import sqlite3
 import os
+import bcrypt
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "user_data.db")
 
 
 def init_db():
-    """Initialize the SQLite database and create tables with correct schema."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("DROP TABLE IF EXISTS users;")  # remove old incorrect table
-
     cursor.execute("""
-        CREATE TABLE users (
+        CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
             age INTEGER,
             sex TEXT,
+            password_hash TEXT,
             usage_count INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -33,30 +33,33 @@ def init_db():
 
     conn.commit()
     conn.close()
-
-
-def create_user(email: str, age: int, sex: str):
+    
+def create_user(email: str, age: int, sex: str, password: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
     cursor.execute("""
-        INSERT INTO users (email, age, sex, usage_count)
-        VALUES (?, ?, ?, 0)
-    """, (email, age, sex))
+        INSERT INTO users (email, age, sex, password_hash, usage_count)
+        VALUES (?, ?, ?, ?, 0)
+    """, (email, age, sex, hashed))
 
     conn.commit()
     conn.close()
+
 
 
 def get_user(email: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT email, age, sex, usage_count FROM users WHERE email = ?;", (email,))
-    result = cursor.fetchone()
+    cursor.execute("SELECT email, age, sex, password_hash, usage_count FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
 
     conn.close()
-    return result
+    return row
+
 
 
 def save_message(email: str, role: str, content: str):

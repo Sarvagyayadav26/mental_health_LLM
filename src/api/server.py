@@ -5,6 +5,7 @@ from src.storage.chat_history import ChatHistory
 from src.rag.embeddings import Embedder
 from src.storage.vector_store import InMemoryVectorStore as VectorStore
 from src.storage.user_db import create_user, get_user, init_db, save_message
+import bcrypt
 
 
 # Initialize DB
@@ -100,31 +101,23 @@ def history():
 # ----------------------------------------------------------------------
 @app.route("/auth/register", methods=["POST"])
 def register():
-    data = request.get_json(silent=True)
-
-    print("\n🔥 REGISTER ENDPOINT HIT")
-    print("📨 Received JSON:", data)
-
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
+    data = request.get_json()
 
     email = data.get("email")
     age = data.get("age")
     sex = data.get("sex")
+    password = data.get("password")
 
-    if not email or age is None or not sex:
-        print("❌ Missing fields\n")
+    if not email or age is None or not sex or not password:
         return jsonify({"error": "Missing fields"}), 400
 
     if get_user(email):
-        print("❌ User already exists\n")
         return jsonify({"error": "User already exists"}), 400
 
-    # CREATE USER WITH 3 FIELDS
-    create_user(email, age, sex)
+    create_user(email, age, sex, password)
 
-    print("✅ User registered successfully\n")
     return jsonify({"success": "User registered"}), 200
+
 
 
 # ----------------------------------------------------------------------
@@ -132,26 +125,30 @@ def register():
 # ----------------------------------------------------------------------
 @app.route("/auth/login", methods=["POST"])
 def login():
-    data = request.get_json(silent=True)
-
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
+    data = request.get_json()
 
     email = data.get("email")
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
 
     user = get_user(email)
+
     if not user:
         return jsonify({"error": "User does not exist"}), 404
 
-    # user = (email, age, sex, usage_count)
+    stored_hash = user[3]  # email, age, sex, password_hash, usage_count
+
+    if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
+        return jsonify({"error": "Incorrect password"}), 401
+
     return jsonify({
         "success": "Login successful",
         "email": user[0],
         "age": user[1],
         "sex": user[2],
-        "usage_count": user[3]
+        "usage_count": user[4]
     }), 200
 
 
