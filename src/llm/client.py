@@ -17,7 +17,7 @@ class LLMClient:
         self.client = Groq(api_key=self.api_key)
         self.model = model_name or config.GROQ_MODEL
 
-    def generate(self, messages):
+    def generate_response(self, messages):
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
