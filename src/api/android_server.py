@@ -96,23 +96,43 @@ async def chat(query: ChatQuery):
 
     user = get_user(email)
     if not user:
-        raise HTTPException(status_code=400, detail="User not registered")
+        return {
+            "allowed": False,
+            "error": "User not registered",
+            "reply": None
+        }
 
+    # Extract usage_count from database
     usage = user[3]
-    FREE_LIMIT = 5  # ← modify this if needed
 
-    # ----- FREE RESPONSE LIMIT -------
+    # Ensure usage is an integer (Render DB may return TEXT)
+    try:
+        usage = int(usage)
+    except:
+        usage = 0
+
+    FREE_LIMIT = 5  # set your limit
+
+    # ----- FREE RESPONSE LIMIT CHECK -----
     if usage >= FREE_LIMIT:
         return {
             "allowed": False,
             "error": "Free limit reached. Please subscribe to continue.",
             "used": usage,
             "limit": FREE_LIMIT,
+            "reply": None
         }
 
     # Run RAG pipeline
     start = time.time()
-    reply = await run_in_threadpool(run_rag_pipeline, message)
+    try:
+        reply = await run_in_threadpool(run_rag_pipeline, message)
+    except Exception as e:
+        return {
+            "allowed": False,
+            "error": f"Failed to generate reply: {str(e)}",
+            "reply": None
+        }
 
     # Increment usage count
     increment_usage(email)
@@ -123,6 +143,7 @@ async def chat(query: ChatQuery):
         "usage_now": usage + 1,
         "limit": FREE_LIMIT,
         "processing_time": round(time.time() - start, 2),
+        "error": None
     }
 
 

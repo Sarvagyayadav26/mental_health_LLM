@@ -104,3 +104,15 @@ def increment_usage(user_id):
     conn.commit()
     conn.close()
 
+def get_usage(email):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT usage_count FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row and row[0] is not None:
+        return int(row[0])
+
+    return 0
