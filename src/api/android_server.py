@@ -111,7 +111,7 @@ async def chat(query: ChatQuery):
     except:
         usage = 0
 
-    FREE_LIMIT = 5  # set your limit
+    FREE_LIMIT = 50  # set your limit
 
     # ----- FREE RESPONSE LIMIT CHECK -----
     if usage >= FREE_LIMIT:
