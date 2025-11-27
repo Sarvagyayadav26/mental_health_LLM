@@ -51,7 +51,7 @@ class RegisterRequest(BaseModel):
 # ⛔ OLD ENDPOINT — DO NOT USE
 # class Query(BaseModel):
 #     message: str
-
+#hi
 
 # --------------------------------------------------------
 # ✅ AUTH REGISTRATION ENDPOINT
