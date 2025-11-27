@@ -6,7 +6,7 @@ import time
 import logging
 
 # User DB imports
-from src.storage.user_db import init_db, create_user, get_user, get_usage, increment_usage
+from src.storage.user_db import init_db, create_user, get_user, increment_usage
 
 # RAG pipeline imports
 from src.android_main import initialize_all, run_rag_pipeline
