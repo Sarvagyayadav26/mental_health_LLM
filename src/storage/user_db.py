@@ -91,3 +91,16 @@ def get_messages(email: str, limit: int = 50):
     conn.close()
 
     return rows[::-1]
+
+def increment_usage(user_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE users SET usage_count = usage_count + 1 WHERE user_id = ?",
+        (user_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
