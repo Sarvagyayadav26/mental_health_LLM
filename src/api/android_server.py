@@ -4,6 +4,9 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import time
 import logging
+from flask import request
+import bcrypt
+
 
 # User DB imports
 from src.storage.user_db import init_db, create_user, get_user, increment_usage
@@ -50,16 +53,29 @@ class ChatQuery(BaseModel):
 # ✅ AUTH REGISTRATION ENDPOINT
 # --------------------------------------------------------
 @app.post("/auth/register")
+from fastapi import HTTPException
+
 async def register_user(data: dict):
     email = data.get("email")
     age = data.get("age")
     sex = data.get("sex")
+    password = data.get("password")
 
-    if not email:
-        raise HTTPException(status_code=400, detail="Email required")
+    # Check missing fields
+    missing_fields = []
+    if not email: missing_fields.append("email")
+    if not age: missing_fields.append("age")
+    if not sex: missing_fields.append("sex")
+    if not password: missing_fields.append("password")
 
+    if missing_fields:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field(s): {', '.join(missing_fields)}"
+        )
+
+    # Check if user exists
     user = get_user(email)
-
     if user:
         return {
             "status": "existing",
@@ -67,13 +83,15 @@ async def register_user(data: dict):
             "usage_count": user[3],
         }
 
-    create_user(email, age, sex)
+    # Create new user
+    create_user(email, age, sex, password)
 
     return {
         "status": "new",
         "message": "User created successfully",
         "usage_count": 0,
     }
+
 
 
 # --------------------------------------------------------
