@@ -6,7 +6,7 @@ import time
 import logging
 from flask import request
 import bcrypt
-
+from fastapi import HTTPException
 
 # User DB imports
 from src.storage.user_db import init_db, create_user, get_user, increment_usage
@@ -53,8 +53,6 @@ class ChatQuery(BaseModel):
 # ✅ AUTH REGISTRATION ENDPOINT
 # --------------------------------------------------------
 @app.post("/auth/register")
-from fastapi import HTTPException
-
 async def register_user(data: dict):
     email = data.get("email")
     age = data.get("age")
