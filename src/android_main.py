@@ -2,12 +2,13 @@ import os
 import datetime
 import hashlib
 
+from groq import Groq
+
 from src.rag.embeddings import Embedder
 from src.storage.vector_store import InMemoryVectorStore
 from src.rag.indexer import Indexer
 from src.rag.retriever import Retriever
 from src.storage.chat_history import ChatHistory
-from src.llm.client import LLMClient
 from src.llm.prompts import build_messages
 from src.llm.instruction_templates import DEFAULT_INSTRUCTION
 from src.rag.doc_loader import load_text_documents
@@ -52,7 +53,14 @@ def initialize_all():
     global EMBEDDER, VECTOR_STORE, RAG, LLM, chat_history
 
     EMBEDDER, VECTOR_STORE, RAG = init_rag()
-    LLM = LLMClient()
+
+    # ✅ NEW: Initialize Groq client (IMPORTANT)
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    if not GROQ_API_KEY:
+        raise RuntimeError("🚨 GROQ_API_KEY is missing in environment variables!")
+
+    LLM = Groq(api_key=GROQ_API_KEY)
+
     chat_history = ChatHistory()
 
     print("✅ All components initialized!")
@@ -80,7 +88,13 @@ def run_rag_pipeline(user_query: str):
         instruction=DEFAULT_INSTRUCTION,
     )
 
-    answer = LLM.generate(messages)
+    # ✅ NEW: Correct Groq call replacing old LLM.generate()
+    response = LLM.chat.completions.create(
+        model="mixtral-8x7b-32768",
+        messages=messages
+    )
+
+    answer = response.choices[0].message["content"]
     chat_history.add_assistant(answer)
 
     return answer
