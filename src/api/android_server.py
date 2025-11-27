@@ -43,7 +43,11 @@ class ChatQuery(BaseModel):
     email: str
     message: str
 
-
+class RegisterRequest(BaseModel):
+    email: str
+    age: int
+    sex: str
+    password: str
 # ⛔ OLD ENDPOINT — DO NOT USE
 # class Query(BaseModel):
 #     message: str
