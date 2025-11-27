@@ -53,44 +53,34 @@ class ChatQuery(BaseModel):
 # ✅ AUTH REGISTRATION ENDPOINT
 # --------------------------------------------------------
 @app.post("/auth/register")
-async def register_user(data: dict):
-    email = data.get("email")
-    age = data.get("age")
-    sex = data.get("sex")
-    password = data.get("password")
+async def register_user(request: RegisterRequest):
+    try:
+        email = request.email
+        age = request.age
+        sex = request.sex
+        password = request.password
 
-    # Check missing fields
-    missing_fields = []
-    if not email: missing_fields.append("email")
-    if not age: missing_fields.append("age")
-    if not sex: missing_fields.append("sex")
-    if not password: missing_fields.append("password")
+        # Check if user exists
+        user = get_user(email)
+        if user:
+            return {
+                "success": "existing",
+                "error": None
+            }
 
-    if missing_fields:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required field(s): {', '.join(missing_fields)}"
-        )
+        # Create new user
+        create_user(email, age, sex, password)
 
-    # Check if user exists
-    user = get_user(email)
-    if user:
         return {
-            "status": "existing",
-            "message": "Welcome back!",
-            "usage_count": user[3],
+            "success": "new",
+            "error": None
         }
 
-    # Create new user
-    create_user(email, age, sex, password)
-
-    return {
-        "status": "new",
-        "message": "User created successfully",
-        "usage_count": 0,
-    }
-
-
+    except Exception as e:
+        return {
+            "success": None,
+            "error": str(e)
+        }
 
 # --------------------------------------------------------
 # ✅ CHAT ENDPOINT WITH USAGE LIMIT
