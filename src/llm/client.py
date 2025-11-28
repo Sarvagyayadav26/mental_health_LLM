@@ -26,9 +26,20 @@ class LLMClient:
                 max_tokens=500
             )
 
+            # If Groq returned 400 or invalid content
+            # Invalid or empty choices
+            if not response or not hasattr(response, "choices") or len(response.choices) == 0:
+                try:
+                    print("❌ RAW GROQ ERROR:", response.error)
+                except:
+                    print("❌ RAW GROQ RESPONSE:", response)
+                return None
+
+
             content = response.choices[0].message.content
             return content or ""
 
         except Exception as e:
             print(f"❌ Error in LLM.generate: {e}")
-            raise
+            return None
+        

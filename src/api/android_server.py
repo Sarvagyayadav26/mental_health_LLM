@@ -7,6 +7,8 @@ import logging
 from flask import request
 import bcrypt
 from fastapi import HTTPException
+from src.storage.chat_history import ChatHistory
+
 
 # User DB imports
 from src.storage.user_db import init_db, create_user, get_user, increment_usage
@@ -104,16 +106,12 @@ async def chat(query: ChatQuery):
 
     # Extract usage_count from database
     usage = user[3]
-
-    # Ensure usage is an integer (Render DB may return TEXT)
     try:
         usage = int(usage)
     except:
         usage = 0
 
-    FREE_LIMIT = 50  # set your limit
-
-    # ----- FREE RESPONSE LIMIT CHECK -----
+    FREE_LIMIT = 50
     if usage >= FREE_LIMIT:
         return {
             "allowed": False,
@@ -123,10 +121,13 @@ async def chat(query: ChatQuery):
             "reply": None
         }
 
-    # Run RAG pipeline
+    # 👉 NEW: per-user chat history
+    chat_history = ChatHistory(email)
+
     start = time.time()
     try:
-        reply = await run_in_threadpool(run_rag_pipeline, message)
+        # 👉 Pass ChatHistory to the RAG pipeline
+        reply = await run_in_threadpool(run_rag_pipeline, message, chat_history)
     except Exception as e:
         return {
             "allowed": False,
@@ -134,7 +135,6 @@ async def chat(query: ChatQuery):
             "reply": None
         }
 
-    # Increment usage count
     increment_usage(email)
 
     return {
@@ -147,6 +147,7 @@ async def chat(query: ChatQuery):
     }
 
 
+
 # --------------------------------------------------------
 # HEALTH CHECK
 # --------------------------------------------------------
@@ -154,3 +155,38 @@ async def chat(query: ChatQuery):
 def health():
     return {"status": "ok", "message": "server running"}
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.api.android_server:app", host="0.0.0.0", port=8000, reload=True)
+
+# --------------------------------------------------------
+# ✅ AUTH LOGIN ENDPOINT
+# --------------------------------------------------------
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/auth/login")
+async def login(req: LoginRequest):
+    # Debug: see raw email
+    print("LOGIN EMAIL RAW:", repr(req.email))
+
+    email = req.email.strip().lower()
+    password = req.password
+
+    user = get_user(email)
+    if not user:
+        return {"error": "User does not exist"}
+
+    stored_hash = user[3]
+
+    if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
+        return {"error": "Incorrect password"}
+
+    return {
+        "success": "Login successful",
+        "email": user[0],
+        "age": user[1],
+        "sex": user[2],
+        "usage_count": user[4]
+    }

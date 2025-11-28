@@ -4,22 +4,34 @@ import src.utils.config as config
 from datetime import datetime
 
 class ChatHistory:
-    def __init__(self, path: str = None):
-        self.path = path or config.CHAT_HISTORY_PATH
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+    def __init__(self, email: str):
+        # Each user gets their own JSON file
+        self.path = os.path.join(config.CHAT_HISTORY_DIR, f"{email}.json")
+        os.makedirs(config.CHAT_HISTORY_DIR, exist_ok=True)
         self._messages = []
         self.load()
 
     def add_user(self, text: str):
-        self._messages.append({"role": "user", "text": text, "time": datetime.utcnow().isoformat()})
+        self._messages.append({
+            "role": "user",
+            "content": text,
+            "time": datetime.utcnow().isoformat()
+        })
         self.save()
 
     def add_assistant(self, text: str):
-        self._messages.append({"role": "assistant", "text": text, "time": datetime.utcnow().isoformat()})
+        self._messages.append({
+            "role": "assistant",
+            "content": text,
+            "time": datetime.utcnow().isoformat()
+        })
         self.save()
 
     def last_n(self, n=6):
-        return self._messages[-n:]
+        return [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in self._messages[-n:]
+        ]
 
     def save(self):
         with open(self.path, "w", encoding="utf-8") as f:
@@ -29,6 +41,13 @@ class ChatHistory:
         if os.path.exists(self.path):
             try:
                 with open(self.path, "r", encoding="utf-8") as f:
-                    self._messages = json.load(f)
-            except Exception:
+                    data = json.load(f)
+
+                    # Convert old format if needed
+                    for msg in data:
+                        if "text" in msg:
+                            msg["content"] = msg.pop("text")
+
+                    self._messages = data
+            except:
                 self._messages = []

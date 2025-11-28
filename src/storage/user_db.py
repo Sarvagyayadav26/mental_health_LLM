@@ -1,3 +1,4 @@
+import email
 import sqlite3
 import os
 import bcrypt
@@ -92,15 +93,16 @@ def get_messages(email: str, limit: int = 50):
 
     return rows[::-1]
 
-def increment_usage(user_id):
+def increment_usage(email):
+    print("DEBUG: increment_usage param =", email, type(email))
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE users SET usage_count = usage_count + 1 WHERE user_id = ?",
-        (user_id,)
+        "UPDATE users SET usage_count = usage_count + 1 WHERE email = ?",
+        (email,)
     )
-
     conn.commit()
     conn.close()
 

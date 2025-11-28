@@ -1,3 +1,4 @@
+import email
 import os
 import datetime
 import hashlib
@@ -12,6 +13,7 @@ from src.storage.chat_history import ChatHistory
 from src.llm.prompts import build_messages
 from src.llm.instruction_templates import DEFAULT_INSTRUCTION
 from src.rag.doc_loader import load_text_documents
+from src.llm.client import LLMClient
 import src.utils.config as config
 
 # GLOBAL placeholders (not initialized at import!)
@@ -60,15 +62,15 @@ def initialize_all():
         raise RuntimeError("🚨 GROQ_API_KEY is missing in environment variables!")
 
     LLM = Groq(api_key=GROQ_API_KEY)
-
-    chat_history = ChatHistory()
+    
+    chat_history = ChatHistory(email)
 
     print("✅ All components initialized!")
 
 
-def run_rag_pipeline(user_query: str):
+def run_rag_pipeline(user_query: str, chat_history):
     """Used by android_server.py"""
-    global EMBEDDER, VECTOR_STORE, RAG, LLM, chat_history
+    global EMBEDDER, VECTOR_STORE, RAG, LLM
 
     if EMBEDDER is None:
         return "System not initialized yet. Please wait 2 seconds and retry."
@@ -87,14 +89,13 @@ def run_rag_pipeline(user_query: str):
         chat_history.last_n(6),
         instruction=DEFAULT_INSTRUCTION,
     )
+    LLm= LLMClient()
+    answer = LLm.generate_response(messages)
 
-    # ✅ NEW: Correct Groq call replacing old LLM.generate()
-    response = LLM.chat.completions.create(
-        model="mixtral-8x7b-32768",
-        messages=messages
-    )
+    if not answer:
+        return "LLM failed to generate a reply"
 
-    answer = response.choices[0].message["content"]
+
     chat_history.add_assistant(answer)
 
     return answer

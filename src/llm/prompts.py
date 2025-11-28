@@ -1,6 +1,10 @@
 from .instruction_templates import DEFAULT_INSTRUCTION
 
 def build_messages(user_query: str, retrieved_docs: list, chat_history: list, instruction: str = None):
+    """
+    Build a clean, safe prompt with NO document IDs, NO chain-of-thought, 
+    and NO mention of retrieval or sections.
+    """
     instruction = instruction or DEFAULT_INSTRUCTION
 
     system_msg = {
@@ -8,43 +12,34 @@ def build_messages(user_query: str, retrieved_docs: list, chat_history: list, in
         "content": instruction
     }
 
-    if not retrieved_docs:
-        # No relevant documents → simple explanation mode
-        user_content = f"""
-You are a helpful assistant.
-
-The user said:
-"{user_query}"
-
-1. First, explain the user’s issue in very simple words.
-2. Then say: "I don’t have a solution yet. Try consulting a doctor until we find one."
-
-Do NOT hallucinate any extra advice or treatments.
-        """
-
-        return [system_msg, {"role": "user", "content": user_content}]
-
-    # retrieved docs exist
-    docs_text = []
+    # Summaries only — silent RAG
+    combined_knowledge = ""
     for d in retrieved_docs:
-        docs_text.append(f"[{d['id']}] {d['text']}")
+        combined_knowledge += f"{d['text']}\n\n"
 
-    docs_block = "\n\n".join(docs_text)
+    # Build clean user message
+    user_content = f"""
+Here is some helpful background information (use it silently, without mentioning documents):
 
-    user_content = f"""Based on the following retrieved document, answer the user's question about "{user_query}".
+{combined_knowledge.strip()}
 
-Retrieved document:
-{docs_block}
+User question:
+{user_query}
 
-Instructions:
-- Use the content from the retrieved document above to answer the question
-- If the content is brief, expand on it naturally and provide helpful context
-- Be empathetic and supportive
-- The text in brackets is actual content, not a placeholder
+Provide a natural, empathetic answer following the guidelines. 
+Do NOT mention:
+- documents
+- retrieval
+- filenames
+- sections
+- IDs
+- reasoning steps
+- chain-of-thought
+    """
 
-Now provide a helpful answer to: {user_query}"""
+    # Add chat history (assistant + user messages)
+    history_messages = []
+    for msg in chat_history:
+        history_messages.append(msg)
 
-    return [
-        system_msg,
-        {"role": "user", "content": user_content}
-    ]
+    return [system_msg] + history_messages + [{"role": "user", "content": user_content}]

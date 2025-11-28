@@ -1,69 +1,74 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
 from src.rag.retriever import Retriever
 from src.llm.client import LLMClient
 from src.storage.chat_history import ChatHistory
 from src.rag.embeddings import Embedder
 from src.storage.vector_store import InMemoryVectorStore as VectorStore
 from src.storage.user_db import create_user, get_user, init_db, save_message
+
 import bcrypt
+print("🔥 FASTAPI SERVER FILE LOADED!")
 
 
-# Initialize DB
+# ----------------------------------------------------------------------
+# INITIALIZE APP + COMPONENTS
+# ----------------------------------------------------------------------
+app = FastAPI()
 init_db()
 
-app = Flask(__name__)
-
-# RAG Components
 embedder = Embedder()
 vector_store = VectorStore()
 retriever = Retriever(embedder, vector_store)
 
-# LLM + History
 llm_client = LLMClient()
 chat_history = ChatHistory()
 
 
 # ----------------------------------------------------------------------
+# REQUEST MODELS (Swagger uses these)
+# ----------------------------------------------------------------------
+class ChatRequest(BaseModel):
+    email: str
+    message: str
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    age: int
+    sex: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+# ----------------------------------------------------------------------
 # CHAT ENDPOINT
 # ----------------------------------------------------------------------
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.get_json(silent=True)
-
-    print("📨 Incoming JSON:", data)
-
-    if data is None:
-        return jsonify({'error': 'Invalid JSON'}), 400
-
-    # Accept frontend keys
-    email = data.get("email")
-    user_input = (
-        data.get("input") or
-        data.get("message") or
-        data.get("text") or
-        data.get("query")
-    )
-
-    if not email:
-        return jsonify({'error': 'Email missing'}), 400
-
-    if not user_input:
-        return jsonify({'error': 'No input provided'}), 400
+@app.post("/chat")
+async def chat(req: ChatRequest):
+    email = req.email
+    user_input = req.input
 
     try:
-        # Retrieve documents
+        # Retrieve RAG documents
         documents = retriever.retrieve(user_input)
 
-        # LLM call
+        # LLM Response
         reply = llm_client.generate_response([
             {"role": "user", "content": user_input}
         ])
 
-        # Save history (local JSON)
+        # Save chat history
         chat_history.add_user(user_input)
         chat_history.add_assistant(reply)
 
-        # Save messages in DB
+        # Save to DB
         save_message(email, "user", user_input)
         save_message(email, "assistant", reply)
 
@@ -77,83 +82,63 @@ def chat():
             for d in documents
         ]
 
-        return jsonify({
+        return JSONResponse({
             "reply": reply,
             "documents": documents_clean,
             "error": None
-        }), 200
+        })
 
     except Exception as e:
-        print("🔥 SERVER ERROR:", e)
-        return jsonify({"error": "Internal Server Error"}), 500
-    #
+        print("🔥 CHAT ERROR:", e)
+        return JSONResponse({"error": "Internal Server Error"}, status_code=500)
+
 
 # ----------------------------------------------------------------------
 # CHAT HISTORY
 # ----------------------------------------------------------------------
-@app.route('/history', methods=['GET'])
+@app.get("/history")
 def history():
-    return jsonify(chat_history.get_history()), 200
+    return JSONResponse(chat_history.get_history())
 
 
 # ----------------------------------------------------------------------
-# AUTH: REGISTER
+# REGISTER USER
 # ----------------------------------------------------------------------
-@app.route("/auth/register", methods=["POST"])
-def register():
-    data = request.get_json()
+@app.post("/auth/register")
+async def register(req: RegisterRequest):
 
-    email = data.get("email")
-    age = data.get("age")
-    sex = data.get("sex")
-    password = data.get("password")
+    if get_user(req.email):
+        return JSONResponse({"error": "User already exists"}, status_code=400)
 
-    if not email or age is None or not sex or not password:
-        return jsonify({"error": "Missing fields"}), 400
+    create_user(req.email, req.age, req.sex, req.password)
 
-    if get_user(email):
-        return jsonify({"error": "User already exists"}), 400
-
-    create_user(email, age, sex, password)
-
-    return jsonify({"success": "User registered"}), 200
-
+    return JSONResponse({"success": "User registered"})
 
 
 # ----------------------------------------------------------------------
-# AUTH: LOGIN
+# LOGIN USER
 # ----------------------------------------------------------------------
-@app.route("/auth/login", methods=["POST"])
-def login():
-    data = request.get_json()
+@app.post("/auth/login")
+async def login(req: LoginRequest):
 
-    email = data.get("email")
-    password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
-
-    user = get_user(email)
+    user = get_user(req.email)
 
     if not user:
-        return jsonify({"error": "User does not exist"}), 404
+        return JSONResponse({"error": "User does not exist"}, status_code=404)
 
-    stored_hash = user[3]  # email, age, sex, password_hash, usage_count
+    stored_hash = user[3]
 
-    if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
-        return jsonify({"error": "Incorrect password"}), 401
+    if not bcrypt.checkpw(req.password.encode(), stored_hash.encode()):
+        return JSONResponse({"error": "Incorrect password"}, status_code=401)
 
-    return jsonify({
+    return JSONResponse({
         "success": "Login successful",
         "email": user[0],
         "age": user[1],
         "sex": user[2],
         "usage_count": user[4]
-    }), 200
+    })
 
-
-# ----------------------------------------------------------------------
-# RUN SERVER
-# ----------------------------------------------------------------------
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.api.server:app", host="0.0.0.0", port=8000, reload=True)
